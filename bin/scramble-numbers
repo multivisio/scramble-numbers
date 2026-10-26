@@ -1,0 +1,102 @@
+#!/usr/bin/env node
+// Scrambles all numbers in the <body> of HTML files, relative to the current directory
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { resolve, relative, join, extname, basename, dirname } from 'node:path';
+import { parseArgs } from 'node:util';
+import { scrambleHtml } from '../src/scramble.js';
+
+const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+
+const HELP = `scramble-numbers ${version}
+
+Replaces every number in the visible <body> text of HTML files with a random
+other number. No number stays the same, some get one digit more or less.
+Tags, attributes, <script>, <style> and comments are left untouched.
+
+Usage:
+  scramble-numbers [files or folders...] [options]
+
+Without arguments all *.html/*.htm files in the current directory are used.
+Folders are searched non-recursively. Paths are relative to the current directory.
+
+Options:
+  -o, --output <file>   Output file (only with a single input file)
+  -i, --in-place        Overwrite the input files instead of writing copies
+  -s, --suffix <text>   Suffix for the copies (default: _scrambled)
+  -r, --rate <0-1>      Share of numbers that get one digit more or less (default: 0.3)
+  -h, --help            Show this help
+  -v, --version         Show the version
+
+Examples:
+  scramble-numbers                     every HTML file here → <name>_scrambled.html
+  scramble-numbers report.html         → report_scrambled.html
+  scramble-numbers report.html -o demo.html --rate 0.5
+  scramble-numbers export/ --in-place`;
+
+const die = (msg) => {
+  console.error(`\x1b[1;31merror:\x1b[0m ${msg}`);
+  process.exit(1);
+};
+
+let args;
+try {
+  args = parseArgs({
+    allowPositionals: true,
+    options: {
+      output: { type: 'string', short: 'o' },
+      'in-place': { type: 'boolean', short: 'i' },
+      suffix: { type: 'string', short: 's', default: '_scrambled' },
+      rate: { type: 'string', short: 'r', default: '0.3' },
+      help: { type: 'boolean', short: 'h' },
+      version: { type: 'boolean', short: 'v' },
+    },
+  });
+} catch (err) {
+  die(`${err.message}\nRun 'scramble-numbers --help' for usage.`);
+}
+const { values: opts, positionals } = args;
+
+if (opts.help) {
+  console.log(HELP);
+  process.exit(0);
+}
+if (opts.version) {
+  console.log(version);
+  process.exit(0);
+}
+
+const rate = Number(opts.rate);
+if (Number.isNaN(rate) || rate < 0 || rate > 1) die(`--rate must be between 0 and 1, got '${opts.rate}'`);
+if (!opts.suffix && !opts['in-place']) die('--suffix must not be empty, use --in-place to overwrite');
+
+const isHtml = (file) => ['.html', '.htm'].includes(extname(file).toLowerCase());
+// Earlier results are skipped, otherwise a second run would scramble them again
+const isOwnOutput = (file) => basename(file, extname(file)).endsWith(opts.suffix);
+
+function htmlFilesIn(dir) {
+  return readdirSync(dir)
+    .map((name) => join(dir, name))
+    .filter((file) => isHtml(file) && !isOwnOutput(file) && statSync(file).isFile())
+    .sort();
+}
+
+const cwd = process.cwd();
+const inputs = (positionals.length ? positionals : ['.']).flatMap((arg) => {
+  const path = resolve(cwd, arg);
+  if (!existsSync(path)) die(`not found: ${arg}`);
+  return statSync(path).isDirectory() ? htmlFilesIn(path) : [path];
+});
+
+if (!inputs.length) die(`no HTML files found in ${positionals.length ? positionals.join(', ') : cwd}`);
+if (opts.output && inputs.length > 1) die('--output only works with a single input file');
+if (opts.output && opts['in-place']) die('--output and --in-place cannot be combined');
+
+for (const input of inputs) {
+  const output = opts['in-place']
+    ? input
+    : opts.output
+      ? resolve(cwd, opts.output)
+      : join(dirname(input), basename(input, extname(input)) + opts.suffix + extname(input));
+  writeFileSync(output, scrambleHtml(readFileSync(input, 'utf8'), rate), 'utf8');
+  console.log(`${relative(cwd, input) || input} → ${relative(cwd, output) || output}`);
+}

@@ -1,0 +1,23 @@
+{
+  "name": "scramble-numbers",
+  "version": "1.0.0",
+  "description": "CLI that replaces every number in the body text of HTML files with random other numbers",
+  "type": "module",
+  "bin": {
+    "scramble-numbers": "bin/scramble-numbers"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/multivisio/scramble-numbers.git"
+  }
+}
