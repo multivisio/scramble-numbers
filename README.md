@@ -83,23 +83,27 @@ Im Ordner mit den HTML-Dateien ausführen:
 scramble-numbers
 ```
 
-Ohne Angaben werden alle `*.html`/`*.htm`-Dateien im aktuellen Ordner verarbeitet (nicht rekursiv). Die Originale bleiben unverändert, das Ergebnis landet daneben als `<name>_scrambled.html`. Dateien, die schon auf `_scrambled` enden, werden übersprungen.
+Wenn nicht anders angegeben, landet das Ergebnis in **`pdf.html`** im aktuellen Ordner. Das Original bleibt unverändert.
+
+Ohne Angabe einer Datei wird die HTML-Datei im aktuellen Ordner verwendet (`*.html`/`*.htm`, nicht rekursiv). Eine vorhandene `pdf.html` zählt dabei nicht als Eingabe, sie wird überschrieben. Liegen mehrere HTML-Dateien im Ordner, bricht der Befehl ab und listet sie auf: dann eine Datei angeben oder mit `--suffix` bzw. `--in-place` alle verarbeiten.
 
 | Befehl | Ergebnis |
 |---|---|
-| `scramble-numbers` | alle HTML-Dateien im aktuellen Ordner → `<name>_scrambled.html` |
-| `scramble-numbers bericht.html` | `bericht_scrambled.html` |
-| `scramble-numbers bericht.html -o demo.html` | `demo.html` |
-| `scramble-numbers export/` | alle HTML-Dateien in `export/` |
+| `scramble-numbers` | die HTML-Datei im aktuellen Ordner → `pdf.html` |
+| `scramble-numbers export.html` | `pdf.html` |
+| `scramble-numbers export.html -o demo.html` | `demo.html` |
+| `scramble-numbers export/ -s _scrambled` | alle HTML-Dateien in `export/` → jeweils `<name>_scrambled.html` daneben |
 | `scramble-numbers export/ --in-place` | überschreibt die Dateien in `export/` direkt |
+
+Soll eine vorhandene `pdf.html` selbst verändert werden, geht das nur ausdrücklich: `scramble-numbers pdf.html --in-place` oder `scramble-numbers pdf.html -o <andere-datei>`.
 
 ### Optionen
 
 | Option | Bedeutung |
 |---|---|
-| `-o`, `--output <datei>` | Ausgabedatei (nur bei einer einzelnen Eingabedatei) |
-| `-i`, `--in-place` | Eingabedateien direkt überschreiben statt Kopien anzulegen |
-| `-s`, `--suffix <text>` | Namenszusatz der Kopien (Standard: `_scrambled`) |
+| `-o`, `--output <datei>` | Ausgabedatei (Standard: `pdf.html`, nur bei einer einzelnen Eingabedatei) |
+| `-i`, `--in-place` | Eingabedateien direkt überschreiben |
+| `-s`, `--suffix <text>` | statt `pdf.html` je eine Kopie `<name><text>.html` neben jede Eingabedatei schreiben |
 | `-r`, `--rate <0–1>` | Anteil der Zahlen, die eine Stelle mehr oder weniger bekommen (Standard: `0.3`) |
 | `-h`, `--help` | Hilfe |
 | `-v`, `--version` | Version |

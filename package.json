@@ -1,6 +1,6 @@
 {
   "name": "scramble-numbers",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CLI that replaces every number in the body text of HTML files with random other numbers",
   "type": "module",
   "bin": {
