@@ -19,5 +19,6 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/multivisio/scramble-numbers.git"
-  }
+  },
+  "license": "MIT"
 }

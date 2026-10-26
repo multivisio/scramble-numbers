@@ -115,3 +115,7 @@ Ohne Angaben werden alle `*.html`/`*.htm`-Dateien im aktuellen Ordner verarbeite
 ```bash
 npm test
 ```
+
+## Lizenz
+
+[MIT](LICENSE)
