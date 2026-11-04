@@ -1,10 +1,12 @@
 {
   "name": "scramble-numbers",
-  "version": "1.1.0",
-  "description": "CLI that replaces every number in the body text of HTML files with random other numbers",
+  "version": "1.2.0",
+  "description": "CLI that makes the body text of HTML files unreadable: scrambles numbers, letters or both",
   "type": "module",
   "bin": {
-    "scramble-numbers": "bin/scramble-numbers"
+    "scramble-numbers": "bin/scramble-numbers",
+    "scramble-text": "bin/scramble-text",
+    "scramble-publication": "bin/scramble-publication"
   },
   "files": [
     "bin",

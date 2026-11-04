@@ -1,0 +1,146 @@
+// Shared CLI of scramble-numbers, scramble-text and scramble-publication, relative to the current directory
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { resolve, relative, join, extname, basename, dirname } from 'node:path';
+import { parseArgs } from 'node:util';
+import { scrambleHtml } from './scramble.js';
+
+const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+
+const COMMANDS = {
+  'scramble-numbers': {
+    numbers: true,
+    letters: false,
+    summary: `Replaces every number in the visible <body> text of HTML files with a random
+other number. No number stays the same, some get one digit more or less.`,
+  },
+  'scramble-text': {
+    numbers: false,
+    letters: true,
+    summary: `Replaces every letter in the visible <body> text of HTML files with a random
+other letter in the same case. Numbers, spaces and punctuation stay as they are.`,
+  },
+  'scramble-publication': {
+    numbers: true,
+    letters: true,
+    summary: `Makes the visible <body> text of HTML files unreadable: every number becomes a
+random other number (some with one digit more or less), every letter a random
+other letter in the same case.`,
+  },
+};
+
+const help = (command, { numbers }) => `${command} ${version}
+
+${COMMANDS[command].summary}
+Tags, attributes, entities, <script>, <style> and comments are left untouched.
+
+Usage:
+  ${command} [files or folders...] [options]
+
+The result is written to pdf.html in the current directory unless --output,
+--suffix or --in-place is given. Without arguments the HTML file in the current
+directory is used (pdf.html itself is skipped). Folders are searched
+non-recursively. Paths are relative to the current directory.
+
+Options:
+  -o, --output <file>   Output file (default: pdf.html, only with a single input file)
+  -i, --in-place        Overwrite the input files instead of writing a new file
+  -s, --suffix <text>   Write a copy <name><suffix>.html next to each input file
+${numbers ? '  -r, --rate <0-1>      Share of numbers that get one digit more or less (default: 0.3)\n' : ''}\
+  -h, --help            Show this help
+  -v, --version         Show the version
+
+Examples:
+  ${command}                     the HTML file here → pdf.html
+  ${command} export.html         → pdf.html
+  ${command} export.html -o demo.html${numbers ? ' --rate 0.5' : ''}
+  ${command} export/ -s _scrambled
+  ${command} export/ --in-place`;
+
+const die = (msg) => {
+  console.error(`\x1b[1;31merror:\x1b[0m ${msg}`);
+  process.exit(1);
+};
+
+export function run(command) {
+  const mode = COMMANDS[command];
+
+  let args;
+  try {
+    args = parseArgs({
+      allowPositionals: true,
+      options: {
+        output: { type: 'string', short: 'o' },
+        'in-place': { type: 'boolean', short: 'i' },
+        suffix: { type: 'string', short: 's' },
+        ...(mode.numbers && { rate: { type: 'string', short: 'r', default: '0.3' } }),
+        help: { type: 'boolean', short: 'h' },
+        version: { type: 'boolean', short: 'v' },
+      },
+    });
+  } catch (err) {
+    die(`${err.message}\nRun '${command} --help' for usage.`);
+  }
+  const { values: opts, positionals } = args;
+
+  if (opts.help) {
+    console.log(help(command, mode));
+    process.exit(0);
+  }
+  if (opts.version) {
+    console.log(version);
+    process.exit(0);
+  }
+
+  const rate = Number(opts.rate ?? 0.3);
+  if (Number.isNaN(rate) || rate < 0 || rate > 1) die(`--rate must be between 0 and 1, got '${opts.rate}'`);
+  if (opts.suffix === '') die('--suffix must not be empty');
+  if ([opts.output, opts.suffix, opts['in-place']].filter(Boolean).length > 1) {
+    die('--output, --suffix and --in-place cannot be combined');
+  }
+
+  const DEFAULT_OUTPUT = 'pdf.html';
+  const cwd = process.cwd();
+  // One output file for all inputs, unless copies are written next to them
+  const singleOutput = opts['in-place'] || opts.suffix ? null : resolve(cwd, opts.output ?? DEFAULT_OUTPUT);
+
+  const isHtml = (file) => ['.html', '.htm'].includes(extname(file).toLowerCase());
+  // Earlier results are skipped, otherwise a second run would scramble them again
+  const isOwnOutput = (file) =>
+    file === singleOutput || (opts.suffix && basename(file, extname(file)).endsWith(opts.suffix));
+
+  function htmlFilesIn(dir) {
+    return readdirSync(dir)
+      .map((name) => join(dir, name))
+      .filter((file) => isHtml(file) && !isOwnOutput(file) && statSync(file).isFile())
+      .sort();
+  }
+
+  const inputs = (positionals.length ? positionals : ['.']).flatMap((arg) => {
+    const path = resolve(cwd, arg);
+    if (!existsSync(path)) die(`not found: ${arg}`);
+    return statSync(path).isDirectory() ? htmlFilesIn(path) : [path];
+  });
+
+  if (!inputs.length) die(`no HTML files found in ${positionals.length ? positionals.join(', ') : cwd}`);
+  if (singleOutput && inputs.length > 1) {
+    die(
+      `${inputs.length} HTML files found, but only one can be written to ${relative(cwd, singleOutput)}:\n` +
+        inputs.map((file) => `  ${relative(cwd, file)}`).join('\n') +
+        '\nName one file, or use --suffix or --in-place for all of them.',
+    );
+  }
+  if (singleOutput && inputs[0] === singleOutput) {
+    die(`${relative(cwd, singleOutput)} is the input file, use --in-place to overwrite it or --output for another file`);
+  }
+
+  const options = { numbers: mode.numbers, letters: mode.letters, rate };
+  for (const input of inputs) {
+    const output = opts['in-place']
+      ? input
+      : opts.suffix
+        ? join(dirname(input), basename(input, extname(input)) + opts.suffix + extname(input))
+        : singleOutput;
+    writeFileSync(output, scrambleHtml(readFileSync(input, 'utf8'), options), 'utf8');
+    console.log(`${relative(cwd, input) || input} → ${relative(cwd, output) || output}`);
+  }
+}

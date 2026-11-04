@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Links the scramble-numbers command into ~/.local/bin (macOS, Linux, WSL)
+# Links the scramble-numbers, scramble-text and scramble-publication commands into ~/.local/bin (macOS, Linux, WSL)
 set -euo pipefail
 
 ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="${SCRAMBLE_NUMBERS_BIN_DIR:-$HOME/.local/bin}"
-TARGET="$BIN_DIR/scramble-numbers"
+COMMANDS=(scramble-numbers scramble-text scramble-publication)
 
 info() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }
@@ -14,13 +14,15 @@ command -v node >/dev/null || die "Node.js not found, install Node.js 20 or newe
 major="$(node -p 'process.versions.node.split(".")[0]')"
 (( major >= 20 )) || die "Node.js $(node --version) is too old, 20 or newer is needed"
 
-chmod +x "$ROOT/bin/scramble-numbers"
 mkdir -p "$BIN_DIR"
-ln -sf "$ROOT/bin/scramble-numbers" "$TARGET"
-info "Linked $TARGET → $ROOT/bin/scramble-numbers"
+for cmd in "${COMMANDS[@]}"; do
+  chmod +x "$ROOT/bin/$cmd"
+  ln -sf "$ROOT/bin/$cmd" "$BIN_DIR/$cmd"
+  info "Linked $BIN_DIR/$cmd → $ROOT/bin/$cmd"
+done
 
 case ":$PATH:" in
-  *":$BIN_DIR:"*) info "Done, try: scramble-numbers --help" ;;
+  *":$BIN_DIR:"*) info "Done, try: scramble-publication --help" ;;
   *)
     case "${SHELL:-}" in
       */zsh) rc="~/.zshrc" ;;

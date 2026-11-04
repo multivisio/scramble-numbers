@@ -1,11 +1,28 @@
 # scramble-numbers
 
-Kommandozeilen-Tool, das in HTML-Dateien alle Zahlen im sichtbaren Text des `<body>` durch zufällige andere Zahlen ersetzt, z. B. um echte Kennzahlen in Demo- oder Präsentationsversionen eines Berichts unkenntlich zu machen.
+Kommandozeilen-Tools, die den sichtbaren Text im `<body>` von HTML-Dateien unkenntlich machen, z. B. um echte Kennzahlen und Inhalte in Demo- oder Präsentationsversionen eines Berichts zu verbergen.
+
+| Befehl | Zahlen | Buchstaben |
+|---|---|---|
+| `scramble-numbers` | ✓ | – |
+| `scramble-text` | – | ✓ |
+| `scramble-publication` | ✓ | ✓ |
+
+**Zahlen**
 
 - Keine Zahl bleibt gleich.
 - Ein Teil der Zahlen bekommt zufällig eine Stelle mehr oder weniger, aus `843` wird also z. B. `2432` oder `24`.
-- Tags, Attribute (`src`, `width`, `class` …), `<head>`, `<script>`, `<style>`, `<textarea>` und Kommentare bleiben unverändert, das Layout bleibt also intakt.
 - Trennzeichen bleiben stehen, nur die Ziffern dazwischen ändern sich (`1.234,56` → `4.636,26`).
+
+**Buchstaben**
+
+- Jeder Buchstabe wird durch einen zufälligen anderen ersetzt, Groß- und Kleinschreibung bleibt erhalten (`Umsatz` → `Kpwrfe`).
+- Wortlängen, Leerzeichen und Satzzeichen bleiben, der Textfluss und Umbrüche sehen also ähnlich aus.
+- Umlaute und andere Sonderbuchstaben werden zu einfachen Buchstaben `a`–`z` bzw. `A`–`Z`.
+
+**Für alle Befehle**
+
+- Tags, Attribute (`src`, `width`, `class`, `alt` …), Entities (`&nbsp;`, `&#160;`), `<head>`, `<script>`, `<style>`, `<textarea>` und Kommentare bleiben unverändert, das Layout bleibt also intakt.
 - Der Befehl arbeitet immer relativ zum Ordner, in dem er ausgeführt wird.
 
 ## Voraussetzungen
@@ -31,18 +48,18 @@ git clone https://github.com/multivisio/scramble-numbers.git ~/scramble-numbers
 
 Der Ort ist frei wählbar.
 
-### 2. Befehl in den PATH legen
+### 2. Befehle in den PATH legen
 
 ```bash
 ~/scramble-numbers/install.sh
 ```
 
-Das Script prüft die Node-Version und verlinkt `bin/scramble-numbers` nach `~/.local/bin/scramble-numbers`. Ist `~/.local/bin` nicht im PATH, gibt es den passenden Befehl aus.
+Das Script prüft die Node-Version und verlinkt `scramble-numbers`, `scramble-text` und `scramble-publication` aus `bin/` nach `~/.local/bin/`. Ist `~/.local/bin` nicht im PATH, gibt es den passenden Befehl aus.
 
 Manuell geht es genauso:
 
 ```bash
-mkdir -p ~/.local/bin && ln -sf ~/scramble-numbers/bin/scramble-numbers ~/.local/bin/scramble-numbers
+mkdir -p ~/.local/bin && for c in numbers text publication; do ln -sf ~/scramble-numbers/bin/scramble-$c ~/.local/bin/scramble-$c; done
 ```
 
 `~/.local/bin` in den PATH eintragen (falls nötig) und ein neues Terminal öffnen.
@@ -62,7 +79,7 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 Prüfen:
 
 ```bash
-scramble-numbers --version
+scramble-publication --version
 ```
 
 **Alternative mit npm:** `npm install -g github:multivisio/scramble-numbers`. Mit nvm muss das allerdings für jede Node-Version neu installiert werden, der Symlink oben gilt dagegen für alle.
@@ -73,15 +90,17 @@ scramble-numbers --version
 git -C ~/scramble-numbers pull
 ```
 
-Der Symlink zeigt auf das Repository, ein erneutes Installieren ist nicht nötig.
+Die Symlinks zeigen auf das Repository, ein erneutes Installieren ist nicht nötig. Nur wer von einer Version vor 1.2.0 kommt, muss `install.sh` einmal neu ausführen, damit `scramble-text` und `scramble-publication` verlinkt werden.
 
 ## Nutzung
 
 Im Ordner mit den HTML-Dateien ausführen:
 
 ```bash
-scramble-numbers
+scramble-publication
 ```
+
+Alle drei Befehle haben dieselben Argumente und Optionen, die Beispiele unten gelten also genauso für `scramble-text` und `scramble-publication`.
 
 Wenn nicht anders angegeben, landet das Ergebnis in **`pdf.html`** im aktuellen Ordner. Das Original bleibt unverändert.
 
@@ -104,7 +123,7 @@ Soll eine vorhandene `pdf.html` selbst verändert werden, geht das nur ausdrück
 | `-o`, `--output <datei>` | Ausgabedatei (Standard: `pdf.html`, nur bei einer einzelnen Eingabedatei) |
 | `-i`, `--in-place` | Eingabedateien direkt überschreiben |
 | `-s`, `--suffix <text>` | statt `pdf.html` je eine Kopie `<name><text>.html` neben jede Eingabedatei schreiben |
-| `-r`, `--rate <0–1>` | Anteil der Zahlen, die eine Stelle mehr oder weniger bekommen (Standard: `0.3`) |
+| `-r`, `--rate <0–1>` | Anteil der Zahlen, die eine Stelle mehr oder weniger bekommen (Standard: `0.3`, nicht bei `scramble-text`) |
 | `-h`, `--help` | Hilfe |
 | `-v`, `--version` | Version |
 
@@ -112,7 +131,8 @@ Soll eine vorhandene `pdf.html` selbst verändert werden, geht das nur ausdrück
 
 - Jahreszahlen und Datumsangaben im Text werden ebenfalls verändert.
 - Bei formatierten Zahlen wird jeder Ziffernblock einzeln verändert. Mit hoher `--rate` kann so z. B. `43.5083,6` entstehen.
-- Zahlen in Attributen (z. B. `alt`- oder `title`-Texte) bleiben bewusst unverändert.
+- Zahlen und Texte in Attributen (z. B. `alt`- oder `title`-Texte) bleiben bewusst unverändert.
+- Der `<title>` im `<head>` bleibt ebenfalls lesbar.
 
 ## Entwicklung
 
